@@ -1,12 +1,13 @@
 use bevy::prelude::*;
-use bevy_iced::{BevyIcedApplication, IcedPlugin};
+use bevy_iced::{BevyIcedApplication, IcedCache, IcedPlugin, Instance, WithApplicationTypeExt};
 use iced_native::{Alignment, Command};
 use iced_wgpu::{Button, Column, Text};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(IcedPlugin)
+        .add_plugin(IcedPlugin.with_application_type::<Counter>())
+        .add_startup_system(setup)
         .run();
 }
 
@@ -45,4 +46,11 @@ impl BevyIcedApplication for Counter {
             )
             .into()
     }
+}
+
+fn setup(mut commands: Commands) {
+    commands
+        .spawn()
+        .insert(Instance::new(Counter::default()))
+        .insert(IcedCache::default());
 }
