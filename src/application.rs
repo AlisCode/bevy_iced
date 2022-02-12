@@ -1,8 +1,16 @@
+use bevy::prelude::Component;
 use iced_native::{Command, Element};
 
-struct Instance<A: BevyIcedApplication>(A);
+#[derive(Debug, Component)]
+pub struct Instance<A: BevyIcedApplication>(pub A); // TODO: Probably need to erase that
 
-pub trait BevyIcedApplication: Sized {
+impl<A: BevyIcedApplication> Instance<A> {
+    pub fn new(application: A) -> Self {
+        Instance(application)
+    }
+}
+
+pub trait BevyIcedApplication: Sized + Send + Sync {
     type Message: std::fmt::Debug;
 
     fn new() -> (Self, Command<Self::Message>);

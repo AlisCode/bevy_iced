@@ -1,8 +1,13 @@
 mod application;
+mod systems;
+mod user_interface;
+
+use std::sync::{Arc, Mutex};
 
 use bevy::{app::Plugin, render::renderer::RenderDevice};
 
-pub use application::BevyIcedApplication;
+pub use application::{BevyIcedApplication, Instance};
+pub use user_interface::IcedCache;
 
 #[derive(Debug, Default)]
 pub struct IcedPlugin;
