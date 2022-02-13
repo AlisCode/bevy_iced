@@ -5,6 +5,7 @@ use iced_wgpu::{Button, Column, Text};
 
 fn main() {
     App::new()
+        .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
         .add_plugin(IcedPlugin.with_application_type::<Counter>())
         .add_startup_system(setup)
@@ -29,6 +30,14 @@ impl BevyIcedApplication for Counter {
 
     fn new() -> (Self, iced_native::Command<Self::Message>) {
         (Self::default(), Command::none())
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<CounterMessage> {
+        match message {
+            CounterMessage::Increment => self.value += 1,
+            CounterMessage::Decrement => self.value -= 1,
+        }
+        Command::none()
     }
 
     fn view(&mut self) -> iced_native::Element<Self::Message, iced_wgpu::Renderer> {

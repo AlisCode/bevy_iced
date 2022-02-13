@@ -1,5 +1,6 @@
 mod application;
 mod render;
+mod resources;
 mod systems;
 mod user_interface;
 
@@ -7,11 +8,13 @@ use std::sync::{Arc, Mutex};
 
 use bevy::{
     app::Plugin,
-    prelude::Assets,
     render::{render_graph::RenderGraph, renderer::RenderDevice, texture::BevyDefault, RenderApp},
 };
+pub use iced_native::event::Event as IcedEvent;
 
 pub use application::{BevyIcedApplication, Instance};
+pub use iced_native::Command;
+pub use resources::IcedCursor;
 pub use user_interface::IcedCache;
 
 #[derive(Debug, Default)]
@@ -19,6 +22,7 @@ pub struct IcedPlugin;
 
 impl Plugin for IcedPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
+        // Shared resources
         let settings = iced_wgpu::Settings::default();
         let device = app
             .world
@@ -31,7 +35,10 @@ impl Plugin for IcedPlugin {
         );
         let renderer = IcedRenderer::new(iced_wgpu::Renderer::new(backend));
         app.insert_resource(renderer.clone());
+        app.insert_resource(IcedCursor::default());
+        app.add_event::<IcedEvent>();
 
+        // Iced Rendering
         let render_app = app
             .get_sub_app_mut(RenderApp)
             .expect("Failed to get RenderApp");
@@ -42,6 +49,9 @@ impl Plugin for IcedPlugin {
             .get_resource_mut::<RenderGraph>()
             .expect("Failed to get Render Graph");
         render::setup_iced_pipeline(&mut *render_graph);
+
+        // Common systems
+        app.add_system(systems::read_iced_event);
     }
 }
 
