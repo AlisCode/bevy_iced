@@ -12,7 +12,7 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
     let mut renderer = renderer.0.lock().unwrap();
     for (mut instance, mut cache) in query.iter_mut() {
         let mut ui =
-            cache.build_user_interface(&mut instance.0, &mut renderer, Size::new(500., 500.));
+            cache.build_user_interface(&mut instance.0, &mut renderer, Size::new(1280., 720.));
 
         let events = []; // TODO: Fetch events
         let cursor_position = Point::new(0., 0.); // TODO: Store cursor position

@@ -1,10 +1,15 @@
 mod application;
+mod render;
 mod systems;
 mod user_interface;
 
 use std::sync::{Arc, Mutex};
 
-use bevy::{app::Plugin, render::renderer::RenderDevice};
+use bevy::{
+    app::Plugin,
+    prelude::Assets,
+    render::{render_graph::RenderGraph, renderer::RenderDevice, texture::BevyDefault, RenderApp},
+};
 
 pub use application::{BevyIcedApplication, Instance};
 pub use user_interface::IcedCache;
@@ -22,10 +27,21 @@ impl Plugin for IcedPlugin {
         let backend = iced_wgpu::Backend::new(
             device.wgpu_device(),
             settings,
-            wgpu::TextureFormat::R8Unorm, // TODO: don't pick at random, needs the wgpu Intance
+            wgpu::TextureFormat::bevy_default(),
         );
-        let renderer = iced_wgpu::Renderer::new(backend);
-        app.insert_resource(IcedRenderer::new(renderer));
+        let renderer = IcedRenderer::new(iced_wgpu::Renderer::new(backend));
+        app.insert_resource(renderer.clone());
+
+        let render_app = app
+            .get_sub_app_mut(RenderApp)
+            .expect("Failed to get RenderApp");
+        render_app.insert_resource(renderer);
+
+        let mut render_graph = render_app
+            .world
+            .get_resource_mut::<RenderGraph>()
+            .expect("Failed to get Render Graph");
+        render::setup_iced_pipeline(&mut *render_graph);
     }
 }
 
@@ -53,6 +69,7 @@ pub trait WithApplicationTypeExt: Sized {
 impl<A: BevyIcedApplication, P: Plugin> WithApplicationTypeExt for WithApplicationType<A, P> {}
 impl WithApplicationTypeExt for IcedPlugin {}
 
+#[derive(Clone)]
 pub struct IcedRenderer(Arc<Mutex<iced_wgpu::Renderer>>);
 
 impl IcedRenderer {
