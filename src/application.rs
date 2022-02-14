@@ -11,7 +11,7 @@ impl<A: BevyIcedApplication> Instance<A> {
 }
 
 pub trait BevyIcedApplication: Sized + Send + Sync {
-    type Message: std::fmt::Debug;
+    type Message: std::fmt::Debug + Send + Sync;
 
     fn new() -> (Self, Command<Self::Message>);
 

@@ -1,27 +1,36 @@
 use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::{EventReader, EventWriter, MouseButton, Query, Res, ResMut};
+use bevy::tasks::IoTaskPool;
 use bevy::window::{CursorEntered, CursorLeft, CursorMoved};
+use iced_native::command::Action;
 use iced_native::{Command, Event as IcedEvent, Point, Size};
 
 use crate::application::{BevyIcedApplication, Instance};
+use crate::resources::IcedUiMessages;
 use crate::user_interface::IcedCache;
 use crate::{IcedCursor, IcedRenderer};
+use iced_native::futures::FutureExt;
 
 pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
     renderer: ResMut<IcedRenderer>,
     cursor: Res<IcedCursor>,
+    io_task_pool: Res<IoTaskPool>,
     mut iced_events: EventReader<IcedEvent>,
-    mut query: Query<(&mut Instance<A>, &mut IcedCache)>,
+    mut query: Query<(
+        &mut Instance<A>,
+        &mut IcedCache,
+        &IcedUiMessages<A::Message>,
+    )>,
 ) {
     let events: Vec<IcedEvent> = iced_events.iter().cloned().collect();
     let cursor_position = cursor.0;
     let mut renderer = renderer.0.lock().unwrap();
-    for (mut instance, mut cache) in query.iter_mut() {
+    for (mut instance, mut cache, ui_messages) in query.iter_mut() {
         let mut ui =
             cache.build_user_interface(&mut instance.0, &mut renderer, Size::new(1280., 720.));
 
         let mut clipboard = iced_native::clipboard::Null; // TODO: Handle clipboard
-        let mut messages = Vec::new();
+        let mut messages = ui_messages.rx.try_iter().collect();
         ui.update(
             &events,
             cursor_position,
@@ -33,11 +42,29 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
         let _mouse_interaction = ui.draw(&mut renderer, cursor_position);
         cache.destroy_user_interface(ui);
 
-        let _commands: Vec<Command<A::Message>> = messages
+        let commands: Vec<Command<A::Message>> = messages
             .into_iter()
             .map(|msg| instance.0.update(msg))
             .collect();
-        // TODO: execute commands
+
+        let actions: Vec<_> = commands
+            .into_iter()
+            .flat_map(|c| c.actions().into_iter())
+            .collect();
+
+        for action in actions {
+            match action {
+                Action::Future(fut) => {
+                    let tx = ui_messages.tx.clone();
+                    let future = fut.then(|msg| async move {
+                        tx.send(msg).unwrap();
+                    });
+                    io_task_pool.spawn(future).detach(); // TODO maybe store the tasks somewhere ?
+                }
+                Action::Window(_) => (),
+                Action::Clipboard(_) => (),
+            }
+        }
     }
 }
 

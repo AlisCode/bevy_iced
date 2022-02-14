@@ -14,7 +14,7 @@ pub use iced_native::event::Event as IcedEvent;
 
 pub use application::{BevyIcedApplication, Instance};
 pub use iced_native::Command;
-pub use resources::IcedCursor;
+pub use resources::{IcedCursor, IcedUiMessages};
 pub use user_interface::IcedCache;
 
 #[derive(Debug, Default)]
@@ -64,6 +64,7 @@ impl<A: BevyIcedApplication + 'static, P: Plugin> Plugin for WithApplicationType
     fn build(&self, app: &mut bevy::prelude::App) {
         self.inner.build(app);
         app.add_system(systems::update_iced_user_interface::<A>);
+        app.add_event::<A::Message>();
     }
 }
 
