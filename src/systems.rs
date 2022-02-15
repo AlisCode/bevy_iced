@@ -1,8 +1,10 @@
+use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::{EventReader, EventWriter, MouseButton, Query, Res, ResMut};
 use bevy::tasks::IoTaskPool;
-use bevy::window::{CursorEntered, CursorLeft, CursorMoved};
+use bevy::window::{CursorEntered, CursorLeft, CursorMoved, ReceivedCharacter};
 use iced_native::command::Action;
+use iced_native::keyboard::Modifiers;
 use iced_native::{Command, Event as IcedEvent, Point, Size};
 
 use crate::application::{BevyIcedApplication, Instance};
@@ -73,6 +75,8 @@ pub fn read_iced_event(
     mut cursor_entered_events: EventReader<CursorEntered>,
     mut cursor_left_events: EventReader<CursorLeft>,
     mut mouse_button_events: EventReader<MouseButtonInput>,
+    mut keyboard_events: EventReader<KeyboardInput>,
+    mut received_char_events: EventReader<ReceivedCharacter>,
     mut cursor_position: ResMut<IcedCursor>,
     mut iced_events: EventWriter<IcedEvent>,
 ) {
@@ -115,6 +119,36 @@ pub fn read_iced_event(
                 )));
             }
         }
+    }
+
+    for ev in keyboard_events.iter() {
+        let pressed = ev.state.is_pressed();
+        let modifiers = Modifiers::default();
+        if let Some(key_code) = ev.key_code {
+            // convert into iced key_code
+            let key_code = crate::convert::convert_keycode(key_code);
+            if pressed {
+                events.push(IcedEvent::Keyboard(
+                    iced_native::keyboard::Event::KeyPressed {
+                        key_code,
+                        modifiers, // TODO: Handle modifiers
+                    },
+                ));
+            } else {
+                events.push(IcedEvent::Keyboard(
+                    iced_native::keyboard::Event::KeyReleased {
+                        key_code,
+                        modifiers, // TODO: Handle modifiers
+                    },
+                ));
+            }
+        }
+    }
+
+    for ev in received_char_events.iter() {
+        events.push(IcedEvent::Keyboard(
+            iced_native::keyboard::Event::CharacterReceived(ev.char),
+        ));
     }
 
     iced_events.send_batch(events.into_iter());
