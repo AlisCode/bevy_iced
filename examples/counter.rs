@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_iced::{
-    BevyIcedApplication, IcedCache, IcedPlugin, IcedUiMessages, Instance, WithApplicationTypeExt,
+    BevyIcedApplication, IcedCache, IcedPlugin, IcedSize, IcedUiMessages, Instance,
+    WithApplicationTypeExt,
 };
 use iced_native::{widget::Container, Alignment, Command, Length};
 use iced_wgpu::{Button, Column, Text};
@@ -70,5 +71,6 @@ fn setup(mut commands: Commands) {
         .spawn()
         .insert(Instance::new(Counter::default()))
         .insert(IcedUiMessages::<CounterMessage>::default())
+        .insert(IcedSize::default())
         .insert(IcedCache::default());
 }

@@ -1,5 +1,7 @@
 use bevy::input::keyboard::KeyCode as BevyKeyCode;
+use bevy::prelude::Size as BevySize;
 use iced_native::keyboard::KeyCode as IcedKeyCode;
+use iced_native::Size as IcedSize;
 
 pub fn convert_keycode(bevy_keycode: BevyKeyCode) -> IcedKeyCode {
     match bevy_keycode {
@@ -166,5 +168,19 @@ pub fn convert_keycode(bevy_keycode: BevyKeyCode) -> IcedKeyCode {
         BevyKeyCode::Paste => IcedKeyCode::Paste,
         BevyKeyCode::Cut => IcedKeyCode::Cut,
         BevyKeyCode::Asterisk => IcedKeyCode::Asterisk,
+    }
+}
+
+pub fn size(bevy_size: BevySize<f32>) -> IcedSize<f32> {
+    IcedSize {
+        width: bevy_size.width,
+        height: bevy_size.height,
+    }
+}
+
+pub fn size_u32(bevy_size: BevySize<f32>) -> IcedSize<u32> {
+    IcedSize {
+        width: bevy_size.width as u32,
+        height: bevy_size.height as u32,
     }
 }

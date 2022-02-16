@@ -15,7 +15,7 @@ pub use iced_native::event::Event as IcedEvent;
 
 pub use application::{BevyIcedApplication, Instance};
 pub use iced_native::Command;
-pub use resources::{IcedCursor, IcedUiMessages};
+pub use resources::{IcedCursor, IcedSize, IcedUiMessages};
 pub use user_interface::IcedCache;
 
 #[derive(Debug, Default)]

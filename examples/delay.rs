@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_iced::{
-    BevyIcedApplication, IcedCache, IcedPlugin, IcedUiMessages, Instance, WithApplicationTypeExt,
+    BevyIcedApplication, IcedCache, IcedPlugin, IcedSize, IcedUiMessages, Instance,
+    WithApplicationTypeExt,
 };
 use futures_timer::Delay;
 use iced_native::{widget::Container, Alignment, Command, Length};
@@ -83,5 +84,6 @@ fn setup(mut commands: Commands) {
         .spawn()
         .insert(Instance::new(DelayUi::default()))
         .insert(IcedUiMessages::<DelayMessage>::default())
+        .insert(IcedSize::default())
         .insert(IcedCache::default());
 }

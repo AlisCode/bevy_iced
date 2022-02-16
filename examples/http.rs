@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_iced::{
-    BevyIcedApplication, IcedCache, IcedPlugin, IcedUiMessages, Instance, WithApplicationTypeExt,
+    BevyIcedApplication, IcedCache, IcedPlugin, IcedSize, IcedUiMessages, Instance,
+    WithApplicationTypeExt,
 };
 use iced_native::{
     widget::{Container, TextInput},
@@ -102,5 +103,6 @@ fn setup(mut commands: Commands) {
         .spawn()
         .insert(Instance::new(HttpExample::default()))
         .insert(IcedUiMessages::<HttpExampleMessage>::default())
+        .insert(IcedSize::default())
         .insert(IcedCache::default());
 }

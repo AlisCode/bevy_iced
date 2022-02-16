@@ -2,13 +2,13 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::{EventReader, EventWriter, MouseButton, Query, Res, ResMut};
 use bevy::tasks::IoTaskPool;
-use bevy::window::{CursorEntered, CursorLeft, CursorMoved, ReceivedCharacter};
+use bevy::window::{CursorEntered, CursorLeft, CursorMoved, ReceivedCharacter, Windows};
 use iced_native::command::Action;
 use iced_native::keyboard::Modifiers;
-use iced_native::{Command, Event as IcedEvent, Point, Size};
+use iced_native::{Command, Event as IcedEvent, Point};
 
 use crate::application::{BevyIcedApplication, Instance};
-use crate::resources::IcedUiMessages;
+use crate::resources::{IcedSize, IcedUiMessages};
 use crate::user_interface::IcedCache;
 use crate::{IcedCursor, IcedRenderer};
 use iced_native::futures::FutureExt;
@@ -17,19 +17,24 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
     renderer: ResMut<IcedRenderer>,
     cursor: Res<IcedCursor>,
     io_task_pool: Res<IoTaskPool>,
+    windows: Res<Windows>,
     mut iced_events: EventReader<IcedEvent>,
     mut query: Query<(
         &mut Instance<A>,
         &mut IcedCache,
         &IcedUiMessages<A::Message>,
+        &IcedSize,
     )>,
 ) {
+    let window = windows
+        .get_primary()
+        .expect("Failed to find primary window"); // TODO: support multiple windows
     let events: Vec<IcedEvent> = iced_events.iter().cloned().collect();
     let cursor_position = cursor.0;
     let mut renderer = renderer.0.lock().unwrap();
-    for (mut instance, mut cache, ui_messages) in query.iter_mut() {
+    for (mut instance, mut cache, ui_messages, size) in query.iter_mut() {
         let mut ui =
-            cache.build_user_interface(&mut instance.0, &mut renderer, Size::new(1280., 720.));
+            cache.build_user_interface(&mut instance.0, &mut renderer, size.resolve(window));
 
         let mut clipboard = iced_native::clipboard::Null; // TODO: Handle clipboard
         let mut messages = ui_messages.rx.try_iter().collect();
@@ -71,6 +76,7 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
 }
 
 pub fn read_iced_event(
+    windows: Res<Windows>,
     mut cursor_moved_events: EventReader<CursorMoved>,
     mut cursor_entered_events: EventReader<CursorEntered>,
     mut cursor_left_events: EventReader<CursorLeft>,
@@ -80,14 +86,17 @@ pub fn read_iced_event(
     mut cursor_position: ResMut<IcedCursor>,
     mut iced_events: EventWriter<IcedEvent>,
 ) {
+    let window = windows
+        .get_primary()
+        .expect("Failed to find primary window");
     let mut events = Vec::new();
 
     for ev in cursor_moved_events.iter() {
+        cursor_position.0.y = window.height() - ev.position.y;
         events.push(IcedEvent::Mouse(iced_native::mouse::Event::CursorMoved {
-            position: Point::new(ev.position.x, 720. - ev.position.y), // TODO: Fix computation
+            position: Point::new(ev.position.x, cursor_position.0.y),
         }));
         cursor_position.0.x = ev.position.x;
-        cursor_position.0.y = 720. - ev.position.y; // TODO: Fix computation
     }
 
     for _ev in cursor_entered_events.iter() {
