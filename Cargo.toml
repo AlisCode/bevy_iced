@@ -9,7 +9,7 @@ edition = "2021"
 bevy = "0.6"
 crossbeam-channel = "0.5.2"
 futures-timer = "3.0.2"
-iced_wgpu = { git = "https://github.com/iced-rs/iced", commit = "adce9e04213803bd775538efddf6e7908d1c605e" }
-iced_native = { git = "https://github.com/iced-rs/iced", commit = "adce9e04213803bd775538efddf6e7908d1c605e" }
+iced_wgpu = { git = "https://github.com/AlisCode/iced", branch = "feat/extract-primitives" }
+iced_native = { git = "https://github.com/AlisCode/iced", branch = "feat/extract-primitives" }
 surf = "2.3"
 wgpu = "0.12"

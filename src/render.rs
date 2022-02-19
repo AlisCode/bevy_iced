@@ -1,16 +1,12 @@
-use bevy::{
-    prelude::{Entity, With},
-    render::{
-        render_graph::{Node, RenderGraph},
-        view::ExtractedWindows,
-    },
-    utils::HashSet,
+use bevy::render::{
+    render_graph::{Node, RenderGraph},
+    view::ExtractedWindows,
 };
 use iced_native::Size;
 use iced_wgpu::Viewport;
 use wgpu::util::StagingBelt;
 
-use crate::{IcedRenderer, IcedSize};
+use crate::{IcedPrimitives, IcedRenderer};
 
 const ICED_UI_PASS: &'static str = "iced_ui_pass";
 
@@ -22,17 +18,9 @@ pub(crate) fn setup_iced_pipeline(render_graph: &mut RenderGraph) {
 }
 
 #[derive(Default)]
-pub struct IcedNode {
-    entities: HashSet<Entity>,
-}
+pub struct IcedNode;
 
 impl Node for IcedNode {
-    fn update(&mut self, world: &mut bevy::prelude::World) {
-        let mut query = world.query::<(Entity, With<IcedSize>)>();
-        let new_entities = query.iter(&world).map(|(entity, _)| entity).collect();
-        self.entities = new_entities;
-    }
-
     fn run(
         &self,
         _graph: &mut bevy::render::render_graph::RenderGraphContext,
@@ -50,6 +38,8 @@ impl Node for IcedNode {
             .values()
             .last()
             .unwrap();
+        let primitives_res = world.get_resource::<IcedPrimitives>().unwrap();
+        let primitives = primitives_res.0.lock().unwrap();
         let texture_view = window.swap_chain_texture.as_ref().unwrap();
 
         let mut staging_belt = StagingBelt::new(1024); // TODO: persist stagingbelt ?
@@ -58,7 +48,8 @@ impl Node for IcedNode {
         let viewport = Viewport::with_physical_size(size, 1.);
         // TODO: this should be called in a "render" system and store primitives in a dedicated
         // (hidden) component
-        renderer.with_primitives(|backend, primitives| {
+        let backend = renderer.backend_mut();
+        for primitives in &*primitives {
             backend.present::<&str>(
                 device.wgpu_device(),
                 &mut staging_belt,
@@ -68,7 +59,7 @@ impl Node for IcedNode {
                 &viewport,
                 &[], // TODO: Support overlay ?
             );
-        });
+        }
 
         // TODO: Recall staging belt?
         // (needs async runtime)

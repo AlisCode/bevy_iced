@@ -9,13 +9,16 @@ use std::sync::{Arc, Mutex};
 
 use bevy::{
     app::Plugin,
-    render::{render_graph::RenderGraph, renderer::RenderDevice, texture::BevyDefault, RenderApp},
+    render::{
+        render_graph::RenderGraph, renderer::RenderDevice, texture::BevyDefault, RenderApp,
+        RenderStage,
+    },
 };
 pub use iced_native::event::Event as IcedEvent;
 
 pub use application::{BevyIcedApplication, Instance};
 pub use iced_native::Command;
-pub use resources::{IcedCursor, IcedSize, IcedUiMessages};
+pub use resources::{IcedCursor, IcedPrimitives, IcedSize, IcedUiMessages};
 pub use user_interface::IcedCache;
 
 #[derive(Debug, Default)]
@@ -37,6 +40,7 @@ impl Plugin for IcedPlugin {
         let renderer = IcedRenderer::new(iced_wgpu::Renderer::new(backend));
         app.insert_resource(renderer.clone());
         app.insert_resource(IcedCursor::default());
+        app.insert_resource(IcedPrimitives::default());
         app.add_event::<IcedEvent>();
 
         // Iced Rendering
@@ -44,6 +48,7 @@ impl Plugin for IcedPlugin {
             .get_sub_app_mut(RenderApp)
             .expect("Failed to get RenderApp");
         render_app.insert_resource(renderer);
+        render_app.add_system_to_stage(RenderStage::Extract, systems::extract_iced_primitives);
 
         let mut render_graph = render_app
             .world

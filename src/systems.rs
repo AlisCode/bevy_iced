@@ -1,6 +1,6 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::MouseButtonInput;
-use bevy::prelude::{EventReader, EventWriter, MouseButton, Query, Res, ResMut};
+use bevy::prelude::{Commands, EventReader, EventWriter, MouseButton, Query, Res, ResMut};
 use bevy::tasks::IoTaskPool;
 use bevy::window::{CursorEntered, CursorLeft, CursorMoved, ReceivedCharacter, Windows};
 use iced_native::command::Action;
@@ -8,7 +8,7 @@ use iced_native::keyboard::Modifiers;
 use iced_native::{Command, Event as IcedEvent, Point};
 
 use crate::application::{BevyIcedApplication, Instance};
-use crate::resources::{IcedSize, IcedUiMessages};
+use crate::resources::{IcedPrimitives, IcedSize, IcedUiMessages};
 use crate::user_interface::IcedCache;
 use crate::{IcedCursor, IcedRenderer};
 use iced_native::futures::FutureExt;
@@ -19,6 +19,7 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
     io_task_pool: Res<IoTaskPool>,
     windows: Res<Windows>,
     mut iced_events: EventReader<IcedEvent>,
+    iced_primitives: Res<IcedPrimitives>,
     mut query: Query<(
         &mut Instance<A>,
         &mut IcedCache,
@@ -26,6 +27,8 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
         &IcedSize,
     )>,
 ) {
+    let mut primitives = iced_primitives.0.lock().unwrap();
+    primitives.clear();
     let window = windows
         .get_primary()
         .expect("Failed to find primary window"); // TODO: support multiple windows
@@ -72,7 +75,14 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
                 Action::Clipboard(_) => (),
             }
         }
+
+        primitives.push(renderer.take_primitives());
     }
+}
+
+/// Extracts all iced primitives to the rendering subapp
+pub fn extract_iced_primitives(mut commands: Commands, primitives: Res<IcedPrimitives>) {
+    commands.insert_resource(primitives.clone())
 }
 
 pub fn read_iced_event(

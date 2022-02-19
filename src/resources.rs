@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crossbeam_channel::{Receiver, Sender};
 
 use bevy::{
@@ -21,6 +23,10 @@ impl<T> Default for IcedUiMessages<T> {
         IcedUiMessages { tx, rx }
     }
 }
+
+#[derive(Clone, Default, Component)]
+/// TODO: Should probably also store Overlay ?
+pub struct IcedPrimitives(pub(crate) Arc<Mutex<Vec<Vec<iced_wgpu::Primitive>>>>);
 
 #[derive(Component)]
 pub enum IcedSize {
