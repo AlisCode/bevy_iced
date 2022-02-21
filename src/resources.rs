@@ -59,3 +59,19 @@ impl IcedSize {
         }
     }
 }
+
+#[derive(Debug, Component)]
+pub struct IcedFlags<A: BevyIcedApplication> {
+    pub(crate) flags: A::Flags,
+}
+
+impl<A: BevyIcedApplication> Default for IcedFlags<A>
+where
+    A::Flags: Default,
+{
+    fn default() -> Self {
+        IcedFlags {
+            flags: Default::default(),
+        }
+    }
+}

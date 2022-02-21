@@ -1,17 +1,39 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::MouseButtonInput;
-use bevy::prelude::{Commands, EventReader, EventWriter, MouseButton, Query, Res, ResMut};
+use bevy::prelude::{
+    Commands, Entity, EventReader, EventWriter, MouseButton, Query, Res, ResMut, With, World,
+};
 use bevy::tasks::IoTaskPool;
 use bevy::window::{CursorEntered, CursorLeft, CursorMoved, ReceivedCharacter, Windows};
 use iced_native::command::Action;
 use iced_native::keyboard::Modifiers;
 use iced_native::{Command, Event as IcedEvent, Point};
 
-use crate::application::{BevyIcedApplication, Instance};
-use crate::resources::{IcedPrimitives, IcedSize, IcedUiMessages};
+use crate::application::{BevyIcedApplication, IcedInstance};
+use crate::bundles::PrivateIcedBundle;
+use crate::resources::{IcedFlags, IcedPrimitives, IcedSize, IcedUiMessages};
 use crate::user_interface::IcedCache;
 use crate::{IcedCursor, IcedRenderer};
 use iced_native::futures::FutureExt;
+
+pub fn spawn_iced_user_interface<A: BevyIcedApplication + 'static>(world: &mut World) {
+    let mut query = world.query_filtered::<Entity, With<IcedFlags<A>>>();
+    let entities: Vec<Entity> = query.iter(world).collect();
+    for entity in entities {
+        let mut entity = world.entity_mut(entity);
+        let flags: IcedFlags<A> = entity.remove().expect("Must have IcedFlags<A> here");
+
+        let (app, _cmd) = A::new(flags.flags); // TODO: use cmd
+        let instance = IcedInstance(app);
+        let messages = IcedUiMessages::<A::Message>::default();
+
+        entity.insert_bundle(PrivateIcedBundle {
+            instance,
+            cache: IcedCache::default(),
+            messages,
+        });
+    }
+}
 
 pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
     renderer: ResMut<IcedRenderer>,
@@ -19,9 +41,9 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
     io_task_pool: Res<IoTaskPool>,
     windows: Res<Windows>,
     mut iced_events: EventReader<IcedEvent>,
-    iced_primitives: Res<IcedPrimitives>,
+    iced_primitives: ResMut<IcedPrimitives>,
     mut query: Query<(
-        &mut Instance<A>,
+        &mut IcedInstance<A>,
         &mut IcedCache,
         &IcedUiMessages<A::Message>,
         &IcedSize,
@@ -40,7 +62,7 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
             cache.build_user_interface(&mut instance.0, &mut renderer, size.resolve(window));
 
         let mut clipboard = iced_native::clipboard::Null; // TODO: Handle clipboard
-        let mut messages = ui_messages.rx.try_iter().collect();
+        let mut messages = ui_messages.pending_messages();
         ui.update(
             &events,
             cursor_position,
@@ -65,7 +87,7 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
         for action in actions {
             match action {
                 Action::Future(fut) => {
-                    let tx = ui_messages.tx.clone();
+                    let tx = ui_messages.clone_tx();
                     let future = fut.then(|msg| async move {
                         tx.send(msg).unwrap();
                     });

@@ -1,4 +1,5 @@
 mod application;
+mod bundles;
 mod convert;
 mod render;
 mod resources;
@@ -9,6 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use bevy::{
     app::Plugin,
+    prelude::IntoExclusiveSystem,
     render::{
         render_graph::RenderGraph, renderer::RenderDevice, texture::BevyDefault, RenderApp,
         RenderStage,
@@ -16,10 +18,12 @@ use bevy::{
 };
 pub use iced_native::event::Event as IcedEvent;
 
-pub use application::{BevyIcedApplication, Instance};
+pub use application::{BevyIcedApplication, IcedInstance};
+pub use bundles::IcedBundle;
 pub use iced_native::Command;
-pub use resources::{IcedCursor, IcedPrimitives, IcedSize, IcedUiMessages};
-pub use user_interface::IcedCache;
+pub use resources::{IcedFlags, IcedSize, IcedUiMessages};
+
+use crate::resources::{IcedCursor, IcedPrimitives};
 
 #[derive(Debug, Default)]
 pub struct IcedPlugin;
@@ -69,8 +73,9 @@ pub struct WithApplicationType<A: BevyIcedApplication, P> {
 impl<A: BevyIcedApplication + 'static, P: Plugin> Plugin for WithApplicationType<A, P> {
     fn build(&self, app: &mut bevy::prelude::App) {
         self.inner.build(app);
-        app.add_system(systems::update_iced_user_interface::<A>);
-        app.add_event::<A::Message>();
+        app.add_system(systems::spawn_iced_user_interface::<A>.exclusive_system())
+            .add_system(systems::update_iced_user_interface::<A>)
+            .add_event::<A::Message>();
     }
 }
 
