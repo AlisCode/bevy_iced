@@ -8,13 +8,29 @@ use bevy::{
 };
 use iced_native::{Point, Size as IcedNativeSize};
 
+use crate::BevyIcedApplication;
+
 #[derive(Default)]
 pub struct IcedCursor(pub Point);
 
 #[derive(Component)]
 pub struct IcedUiMessages<T> {
-    pub tx: Sender<T>,
-    pub rx: Receiver<T>,
+    tx: Sender<T>,
+    rx: Receiver<T>,
+}
+
+impl<T> IcedUiMessages<T> {
+    pub fn send(&mut self, msg: T) {
+        self.tx.send(msg).expect("Failed to send message"); // TODO: Expose Result ?
+    }
+
+    pub(crate) fn pending_messages(&self) -> Vec<T> {
+        self.rx.try_iter().collect()
+    }
+
+    pub(crate) fn clone_tx(&self) -> Sender<T> {
+        self.tx.clone()
+    }
 }
 
 impl<T> Default for IcedUiMessages<T> {

@@ -2,18 +2,22 @@ use bevy::prelude::Component;
 use iced_native::{Command, Element};
 
 #[derive(Debug, Component)]
-pub struct Instance<A: BevyIcedApplication>(pub A); // TODO: Probably need to erase that
+pub struct IcedInstance<A: BevyIcedApplication>(pub A); // TODO: Probably need to erase that
 
-impl<A: BevyIcedApplication> Instance<A> {
+impl<A: BevyIcedApplication> IcedInstance<A> {
     pub fn new(application: A) -> Self {
-        Instance(application)
+        IcedInstance(application)
     }
 }
 
 pub trait BevyIcedApplication: Sized + Send + Sync {
+    /// Flags used to set the default state of the application
+    type Flags: Send + Sync;
+    /// Units of changes that are produced by the view or by external systems
+    /// that will be used to update the state of this UI application
     type Message: std::fmt::Debug + Send + Sync;
 
-    fn new() -> (Self, Command<Self::Message>);
+    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
         Command::none()
