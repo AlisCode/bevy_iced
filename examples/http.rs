@@ -1,8 +1,5 @@
 use bevy::prelude::*;
-use bevy_iced::{
-    BevyIcedApplication, IcedCache, IcedPlugin, IcedSize, IcedUiMessages, Instance,
-    WithApplicationTypeExt,
-};
+use bevy_iced::{BevyIcedApplication, IcedBundle, IcedPlugin, WithApplicationTypeExt};
 use iced_native::{
     widget::{Container, TextInput},
     Alignment, Command, Length,
@@ -45,9 +42,10 @@ impl Default for HttpExample {
 }
 
 impl BevyIcedApplication for HttpExample {
+    type Flags = ();
     type Message = HttpExampleMessage;
 
-    fn new() -> (Self, iced_native::Command<Self::Message>) {
+    fn new(_flags: ()) -> (Self, iced_native::Command<Self::Message>) {
         (Self::default(), Command::none())
     }
 
@@ -101,8 +99,5 @@ impl BevyIcedApplication for HttpExample {
 fn setup(mut commands: Commands) {
     commands
         .spawn()
-        .insert(Instance::new(HttpExample::default()))
-        .insert(IcedUiMessages::<HttpExampleMessage>::default())
-        .insert(IcedSize::default())
-        .insert(IcedCache::default());
+        .insert_bundle(IcedBundle::<HttpExample>::default());
 }

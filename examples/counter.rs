@@ -1,8 +1,5 @@
 use bevy::prelude::*;
-use bevy_iced::{
-    BevyIcedApplication, IcedCache, IcedPlugin, IcedSize, IcedUiMessages, Instance,
-    WithApplicationTypeExt,
-};
+use bevy_iced::{BevyIcedApplication, IcedBundle, IcedPlugin, WithApplicationTypeExt};
 use iced_native::{widget::Container, Alignment, Command, Length};
 use iced_wgpu::{Button, Column, Text};
 
@@ -29,9 +26,10 @@ enum CounterMessage {
 }
 
 impl BevyIcedApplication for Counter {
+    type Flags = ();
     type Message = CounterMessage;
 
-    fn new() -> (Self, iced_native::Command<Self::Message>) {
+    fn new(_flags: ()) -> (Self, iced_native::Command<Self::Message>) {
         (Self::default(), Command::none())
     }
 
@@ -69,8 +67,5 @@ impl BevyIcedApplication for Counter {
 fn setup(mut commands: Commands) {
     commands
         .spawn()
-        .insert(Instance::new(Counter::default()))
-        .insert(IcedUiMessages::<CounterMessage>::default())
-        .insert(IcedSize::default())
-        .insert(IcedCache::default());
+        .insert_bundle(IcedBundle::<Counter>::default());
 }

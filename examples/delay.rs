@@ -1,10 +1,5 @@
-use std::time::Duration;
-
 use bevy::prelude::*;
-use bevy_iced::{
-    BevyIcedApplication, IcedCache, IcedPlugin, IcedSize, IcedUiMessages, Instance,
-    WithApplicationTypeExt,
-};
+use bevy_iced::{BevyIcedApplication, IcedBundle, IcedPlugin, WithApplicationTypeExt};
 use futures_timer::Delay;
 use iced_native::{widget::Container, Alignment, Command, Length};
 use iced_wgpu::{Button, Column, Text};
@@ -40,9 +35,10 @@ enum DelayMessage {
 }
 
 impl BevyIcedApplication for DelayUi {
+    type Flags = ();
     type Message = DelayMessage;
 
-    fn new() -> (Self, iced_native::Command<Self::Message>) {
+    fn new(_flags: ()) -> (Self, iced_native::Command<Self::Message>) {
         (DelayUi::default(), Command::none())
     }
 
@@ -50,7 +46,7 @@ impl BevyIcedApplication for DelayUi {
         match message {
             DelayMessage::Start => {
                 self.value = "Wait...".to_string();
-                Command::perform(Delay::new(Duration::from_secs(1)), |_| {
+                Command::perform(Delay::new(std::time::Duration::from_secs(1)), |_| {
                     DelayMessage::EndDelay
                 })
             }
@@ -82,8 +78,5 @@ impl BevyIcedApplication for DelayUi {
 fn setup(mut commands: Commands) {
     commands
         .spawn()
-        .insert(Instance::new(DelayUi::default()))
-        .insert(IcedUiMessages::<DelayMessage>::default())
-        .insert(IcedSize::default())
-        .insert(IcedCache::default());
+        .insert_bundle(IcedBundle::<DelayUi>::default());
 }
