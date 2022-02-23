@@ -5,6 +5,7 @@ use bevy::prelude::{
 };
 use bevy::tasks::IoTaskPool;
 use bevy::window::{CursorEntered, CursorLeft, CursorMoved, ReceivedCharacter, Windows};
+use crossbeam_channel::Sender;
 use iced_native::command::Action;
 use iced_native::keyboard::Modifiers;
 use iced_native::{Command, Event as IcedEvent, Point};
@@ -17,21 +18,47 @@ use crate::{IcedCursor, IcedRenderer};
 use iced_native::futures::FutureExt;
 
 pub fn spawn_iced_user_interface<A: BevyIcedApplication + 'static>(world: &mut World) {
+    let io_task_pool = world
+        .get_resource::<IoTaskPool>()
+        .expect("Failed to get IO task pool")
+        .clone();
     let mut query = world.query_filtered::<Entity, With<IcedFlags<A>>>();
     let entities: Vec<Entity> = query.iter(world).collect();
     for entity in entities {
         let mut entity = world.entity_mut(entity);
         let flags: IcedFlags<A> = entity.remove().expect("Must have IcedFlags<A> here");
 
-        let (app, _cmd) = A::new(flags.flags); // TODO: use cmd
-        let instance = IcedInstance(app);
         let messages = IcedUiMessages::<A::Message>::default();
+        let (app, cmd) = A::new(flags.flags);
+        handle_iced_command(&io_task_pool, cmd, messages.clone_tx());
+        let instance = IcedInstance(app);
 
         entity.insert_bundle(PrivateIcedBundle {
             instance,
             cache: IcedCache::default(),
             messages,
         });
+    }
+}
+
+fn handle_iced_command<T: Send + 'static>(
+    io_task_pool: &IoTaskPool,
+    command: iced_native::Command<T>,
+    tx: Sender<T>,
+) {
+    let actions: Vec<_> = command.actions().into_iter().collect();
+    for action in actions {
+        match action {
+            Action::Future(fut) => {
+                let tx = tx.clone();
+                let future = fut.then(|msg| async move {
+                    tx.send(msg).unwrap();
+                });
+                io_task_pool.spawn(future).detach(); // TODO maybe store the tasks somewhere ?
+            }
+            Action::Window(_) => (),    // TODO: handle window action
+            Action::Clipboard(_) => (), // TODO: handle clipboard action
+        }
     }
 }
 
@@ -79,23 +106,8 @@ pub fn update_iced_user_interface<A: BevyIcedApplication + 'static>(
             .map(|msg| instance.0.update(msg))
             .collect();
 
-        let actions: Vec<_> = commands
-            .into_iter()
-            .flat_map(|c| c.actions().into_iter())
-            .collect();
-
-        for action in actions {
-            match action {
-                Action::Future(fut) => {
-                    let tx = ui_messages.clone_tx();
-                    let future = fut.then(|msg| async move {
-                        tx.send(msg).unwrap();
-                    });
-                    io_task_pool.spawn(future).detach(); // TODO maybe store the tasks somewhere ?
-                }
-                Action::Window(_) => (),
-                Action::Clipboard(_) => (),
-            }
+        for command in commands {
+            handle_iced_command(&io_task_pool, command, ui_messages.clone_tx());
         }
 
         primitives.push(renderer.take_primitives());

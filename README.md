@@ -12,8 +12,6 @@ List of stuff that needs to be worked on before the release :
 
 ## Requires Support
 
-* Use the Command from `BevyIcedApplication::new`
-    * Requires storing iced_native::Command in their own (crate-private) component
 * Investigate if possible to dialog with ECS world from Command
     * Probably return a custom Command type?
 * Investigate subscriptions if we want to support that ?

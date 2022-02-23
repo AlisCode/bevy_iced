@@ -80,7 +80,6 @@ impl IcedSize {
 pub struct IcedFlags<A: BevyIcedApplication> {
     pub(crate) flags: A::Flags,
 }
-
 impl<A: BevyIcedApplication> Default for IcedFlags<A>
 where
     A::Flags: Default,
