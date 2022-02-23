@@ -31,7 +31,6 @@ List of stuff that needs to be worked on before the release :
 
 ## Cleanup
 
-* Recall StagingBelt when presenting everything
 * Cleanup all TODOs
 * Cleanup on struct visibility: check that everything is in order
 * Move components to their own file

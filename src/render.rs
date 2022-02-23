@@ -1,8 +1,13 @@
+use std::sync::Mutex;
+
 use bevy::render::{
     render_graph::{Node, RenderGraph},
     view::ExtractedWindows,
 };
-use iced_native::Size;
+use iced_native::{
+    futures::{executor::LocalPool, task::SpawnExt},
+    Size,
+};
 use iced_wgpu::Viewport;
 use wgpu::util::StagingBelt;
 
@@ -11,16 +16,36 @@ use crate::{IcedPrimitives, IcedRenderer};
 const ICED_UI_PASS: &'static str = "iced_ui_pass";
 
 pub(crate) fn setup_iced_pipeline(render_graph: &mut RenderGraph) {
-    render_graph.add_node(ICED_UI_PASS, IcedNode::default());
+    render_graph.add_node(ICED_UI_PASS, IcedNode::new());
     render_graph
         .add_node_edge(bevy::core_pipeline::node::MAIN_PASS_DRIVER, ICED_UI_PASS)
         .expect("Failed to add iced_ui_pass to the render graph");
 }
 
-#[derive(Default)]
-pub struct IcedNode;
+pub struct IcedNode {
+    staging_belt: Mutex<StagingBelt>,
+}
+
+impl IcedNode {
+    pub fn new() -> Self {
+        let staging_belt = Mutex::new(StagingBelt::new(1024));
+        IcedNode { staging_belt }
+    }
+}
 
 impl Node for IcedNode {
+    fn update(&mut self, _world: &mut bevy::prelude::World) {
+        // Recall the staging belt in update to avoid blocking when rendering
+        // Can't use bevy's task pool from the render world, so we're spawning a local pool like in
+        // the examples
+        let mut staging_belt = self.staging_belt.lock().expect("Failed to get StagingBelt");
+        let mut pool = LocalPool::new();
+        pool.spawner()
+            .spawn(staging_belt.recall())
+            .expect("Failed to recall staging belt");
+        pool.run_until_stalled();
+    }
+
     fn run(
         &self,
         _graph: &mut bevy::render::render_graph::RenderGraphContext,
@@ -42,7 +67,7 @@ impl Node for IcedNode {
         let primitives = primitives_res.0.lock().unwrap();
         let texture_view = window.swap_chain_texture.as_ref().unwrap();
 
-        let mut staging_belt = StagingBelt::new(1024); // TODO: persist stagingbelt ?
+        let mut staging_belt = self.staging_belt.lock().expect("Failed to get StagingBelt");
 
         let size = Size::new(window.physical_width, window.physical_height);
         let viewport = Viewport::with_physical_size(size, 1.);
@@ -60,9 +85,7 @@ impl Node for IcedNode {
                 &[], // TODO: Support overlay ?
             );
         }
-
-        // TODO: Recall staging belt?
-        // (needs async runtime)
+        staging_belt.finish();
 
         Ok(())
     }
